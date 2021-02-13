@@ -1,0 +1,363 @@
+---
+title: "Comparativa PIB - PIBpc"
+subtitle: "Carlos Corachán Pérez(carcope2@alumni.uv.es)"
+author: "Universitat de València"
+date: "`r Sys.Date()`"
+output:
+ html_document: 
+   theme: cosmo
+   highlight: haddock
+   toc: yes
+   toc_depth: 2
+   toc_float:
+     collapsed: yes
+     smooth_scroll: yes
+   number_sections: FALSE
+   code_download: yes
+editor_options:
+  chunk_output_type: console
+---
+
+```{r packages-setup, include = FALSE}
+library(tidyverse)
+library(klippy)  #- remotes::install_github("rlesur/klippy")
+library(knitr)
+library(rio)
+library(tidyr)
+library(tidyverse)
+library(ggplot2)
+library(plotly)
+library(gganimate)
+library(readxl)
+library(gapminder)
+library(devtools)
+library(viridis)
+library(kableExtra)
+
+```
+
+
+```{r chunk-setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE,
+                      #results = "hold",
+                      cache = FALSE, cache.path = "/caches/", comment = "#>",
+                      #fig.width = 7, #fig.height= 7,
+                      #out.width = 7, out.height = 7,
+                      collapse = TRUE,  fig.show = "hold",
+                      fig.asp = 7/9, out.width = "60%", fig.align = "center")
+knitr::opts_chunk$set(dev = "png", dev.args = list(type = "cairo-png"))
+```
+
+```{r options-setup, include = FALSE}
+options(scipen = 999) #- para quitar la notación científica
+options("yaml.eval.expr" = TRUE)
+```
+
+
+```{r klippy, echo = FALSE}
+klippy::klippy(position = c("top", "right")) #- remotes::install_github("rlesur/klippy")
+```
+
+<hr class="linea-black">
+
+Trabajo elaborado para la asignatura "Programación y manejo de datos en la era del Big Data" de la Universitat de València durante el curso 2020-2021. El repo del trabajo está [aquí](https://github.com/carcope/trabajo_BigData){target="_blank"}. La página web de la asignatura y los trabajos de mis compañeros pueden verse [aquí](https://perezp44.github.io/intro-ds-20-21-web/07-trabajos.html){target="_blank"}.
+
+# 1. Introducción
+
+En este trabajo analizamos las diferentes variables macroeconómicas, de los países seleccionados, para poder obtener una comparativa no solo para España, sino también para países importantes dentro de nuestra zona económica. Relacionamos el [PIB](https://datosmacro.expansion.com/pib) con el [PIB per cápita](https://datosmacro.expansion.com/pib), sus crecimientos nominales y porcentuales. Todo esto nos da una visión de como avanzan estas tres economías, dejando al descubierto que hay importantes diferencias entre ambas variables. Por último y como dato, ese año y el anterior proporcionan unos datos de PIB per cápita que pueden generar confusión o mal interpretación, teniendo en cuenta que la población ha disminuido de forma brusca debido al [coronavirus](https://www.google.com/search?sxsrf=ALeKk01MYSMQXCCSlyrvt4bTPgDkPREcJA%3A1611685986308&ei=YmAQYMmoEtPVgQa35quYAQ&q=coronavirus+datos&oq=coronavirus+datos&gs_lcp=CgZwc3ktYWIQAzIICAAQsQMQgwEyCAgAELEDEIMBMgIIADICCAAyCAgAELEDEIMBMgIIADICCAAyAggAMgIIADIICAAQsQMQgwE6BwgjELADECc6BwgAELADEEM6BwgAEBQQhwI6DQgAELEDEIMBEBQQhwI6BQgAELEDUJyMAVjewgFg28kBaAFwAngAgAF3iAHaBJIBAzMuM5gBAKABAaoBB2d3cy13aXrIAQrAAQE&sclient=psy-ab&ved=0ahUKEwjJ4c-VnrruAhXTasAKHTfzChMQ4dUDCA0&uact=5).
+
+
+# 2. Datos
+
+En este trabajo he usado la base de datos [Gapminder](https://cran.r-project.org/web/packages/gapminder/README.html) de R, y hemos limpiado estos, seleccionando solo aquellos que nos interesan, es decir los referentes a España, Fráncia y Países Bajos. Además hemos añadido variables, para poder estudiar mejor, es decir comparándolos entre ellos, tales como el crecimiento  anual, el PIB, y el crecimiento porcentual de este.
+
+
+
+
+
+
+
+
+## Así llegaron los datos.
+
+```{r, eval = T, echo=FALSE}
+
+knitr::kable(cbind(gapminder, gapminder)) %>%
+  kable_paper() %>%
+  scroll_box(width = "800px", height = "300px",)
+
+```
+
+
+
+
+
+
+## Así lo dejamos tras el proceso de limpieza
+
+```{r, eval = T, echo=FALSE}
+
+df1 <- gapminder %>% filter( country == "Spain" | country == "Netherlands" | country == "France")
+
+df1.1 <- df1 %>% mutate( GDP = gdpPercap * pop)
+
+df1.2 <- df1.1 %>% mutate(incre.gdp = GDP - first(GDP)) %>%
+  mutate(incre.gdp.anu = GDP - lag(GDP))
+
+df1.3 <- df1.2 %>% mutate(incre.gdp.cap = gdpPercap - first(gdpPercap)) %>%
+  mutate(incre.gdp.cap.anu = gdpPercap - lag(gdpPercap))
+
+df1.4 <- df1.3 %>% mutate(crec.100 = ((GDP - incre.gdp.anu)/GDP) * 100) %>% mutate(crec.100.pc = ((gdpPercap-incre.gdp.cap.anu)/gdpPercap) *100)
+
+
+knitr::kable(cbind(df1.4, df1.4)) %>%
+  kable_paper() %>%
+  scroll_box(width = "800px", height = "300px",)
+
+```
+
+
+
+
+
+
+En este caso el proceso de tratamiento de datos ha consistido en seleccionar la información, únicamente de los países que nos interesan.
+Los cuales son [España](https://datosmacro.expansion.com/pib/espana), [Países Bajos](https://datosmacro.expansion.com/pib/paises-bajos) y [Fráncia](https://datosmacro.expansion.com/pib/francia).
+
+También hemos creado variables, como el PIB, el incremento anual y el incremento porcentual de este. Además del incremento del PIBpc y sus incrementos anuales y porcentuales
+
+
+
+
+
+
+
+# 3. Procesando los datos
+
+He utilizado ggplot para crear gráficos donde se vea con más claridad la evolución de las distintas variables a lo largo del tiempo. Lo cual ha sido bastante complejo. Pero con los distintos paquetes y [vignettes](https://github.com/rstudio/cheatsheets/blob/master/data-visualization-2.1.pdf), la tarea ha sido mas facil y entretenida.
+
+Tras este proceso quedan una serie de gráficos, que vamos a comentar ahora.
+
+
+
+
+
+```{r, eval = T, echo=FALSE, include= F}
+
+pib <- ggplot(df1.1, aes(year, GDP, color = country)) + geom_point() + geom_smooth()
+
+pib <- pib + labs(title = "Gráfico 1:Evolución del PIB",
+       subtitle = "(diferenciando por paises)",
+       caption = "Datos provenientes del Gapminder dataset",
+       x = "Año",
+       y = "PIB",
+       color = "Paises")
+
+pib.anim <- ggplotly(pib)
+
+```
+
+
+## 3.1 Gráfico del PIB
+
+
+
+```{r, eval = T, echo=FALSE}
+
+pib.anim
+
+```
+
+### Comentario :
+        
+        Aquí podemos observar que el PIB crece en el primer periodo a un ritmo constante, aumentado su valor de forma rápida y con saltos grandes en cuanto a cantidades, ahora bien es a final del periodo estudiado donde se observa un mayor crecimiento anual de este. Esto es debido al aumento de la productividad de los últimos años, y el boom de la construcción. Por tanto se espera que el crecimiento de este sea cada vez menor o incluso llegue a estancarse. Posteriormente a estos datos vino la crisis y en vez de estancarse, descendieron los valores de una forma impresionante.
+        
+```{r, eval = T, echo = FALSE, include= F}
+
+
+pib.pc <- ggplot(df1.1, aes(year, gdpPercap, color = country)) + geom_point() + geom_line()
+
+pib.pc <- pib.pc + labs(title = "Gráfico 2:Evolución del PIB.pc",
+       subtitle = "(diferenciando por paises)",
+       caption = "Datos provenientes del Gapminder dataset",
+       x = "Año",
+       y = "PIB.pc",
+       color = "Paises")
+
+
+pib.pc.anim <- ggplotly(pib.pc)
+
+```
+
+
+## 3.2 Gráfico del PIB.pc
+
+
+
+```{r, eval = T, echo=FALSE}
+
+ pib.pc.anim 
+```
+
+### Comentario :
+         
+        Aquí podemos observar que el PIB.pc crece en el primer periodo a un ritmo constante, aumentado su valor de forma rápida y con saltos grandes en cuanto a cantidades, igual que pasa con el PIB, esto se debe al periodo estudiado, puesto que es posterior a las industrializaciones de los diferentes países europeos, y las impresionantes cantidades de capital que obtuvieron para llevar a cabo inversiones muy productivas. Las cuales hicieron que el PIB.pc aumentara de forma tan espectacular. Ahora bien es a final del periodo estudiado donde se observa un menor crecimiento de este. Puesto que ya no se reparte de igual manera la riqueza generada por las inversiones acometidas.
+        
+        
+```{r, eval = T, echo = FALSE, include= F}
+    
+creci.pib.anu <- ggplot(df1.4, aes(year, incre.gdp, color = country)) + geom_point() + geom_line()
+
+creci.pib.anu <- creci.pib.anu + labs(title = "Gráfico 3:Crecimiento anual del PIB",
+       subtitle = "(diferenciando por paises)",
+       caption = "Datos provenientes del Gapminder dataset",
+       x = "Año",
+       y = "Crecimiento anual",
+       color = "Paises")
+
+crec.anim <- ggplotly(creci.pib.anu)
+
+```
+
+
+```{r, eval = T, echo = FALSE, include= F}
+
+creci.pib.pc <- ggplot(df1.4, aes(year, incre.gdp.cap , color = country)) + geom_point() + geom_line()
+
+creci.pib.pc <- creci.pib.pc + labs(title = "Gráfico 4:Crecimiento anual del PIB.pc",
+       subtitle = "(diferenciando por paises)",
+       caption = "Datos provenientes del Gapminder dataset",
+       x = "Año",
+       y = "Crecimiento anual",
+       color = "Paises")
+
+creci.pc.anim <- ggplotly(creci.pib.pc)
+
+```
+ 
+## 3.3 Gráfico del crecimiento del PIB y PIB.pc
+ 
+ 
+
+```{r, eval = T, echo=FALSE}
+
+crec.anim 
+
+creci.pc.anim
+
+```
+
+### Comentario :
+
+    En estos gráficos podemos ver como crecen al unísono ambas variables, pero también, que el crecimiento es diferente por países. Es decir         ahora crecen de forma dispar las variables en función de los países. El PIB crece mas en Fráncia, pero el PIB.pc crece mas en Países         Bajos que en el resto. Esto se debe a la composición de la variable PIB.pc que divide el PIB por la población, como Países Bajos            tiene una población mucho menor que el resto. El incremento del PIB, al dividirlo por la población el aumento de este aes mayo que en         el resto de países.
+        
+## 3.4 Gráfico de la evolución del PIB, y el PIB.pc.
+
+    En estos gráficos vamos a comparar, tanto el PIB, como el PIB.pc con el crecimiento de estos.
+    
+```{r, eval = T, echo = FALSE, include= F}
+
+pibvscreci <- ggplot(df1.4, aes(GDP, incre.gdp, size = pop, colour = country)) +
+  geom_point(alpha = 0.7, show.legend = T) +
+  scale_colour_manual(values = country_colors) +
+  scale_size(range = c(2, 12)) +
+  scale_x_log10() +
+  facet_wrap(~continent) +
+  # Here comes the gganimate specific bits
+  labs(title = 'Year: {frame_time}', x = 'PIB', y = 'Incre.PIB') +
+  transition_time(year) +
+  ease_aes('linear')
+
+```
+
+```{r, eval = T, echo = FALSE, include= F}
+
+pibpcvscreci <- ggplot(df1.4, aes(gdpPercap, incre.gdp.cap, size = pop, colour = country)) +
+  geom_point(alpha = 0.7, show.legend = T) +
+  scale_colour_manual(values = country_colors) +
+  scale_size(range = c(2, 12)) +
+  scale_x_log10() +
+  facet_wrap(~continent) +
+  # Here comes the gganimate specific bits
+  labs(title = 'Year: {frame_time}', x = 'PIB per capita', y = 'Incre.PIB.pc') +
+  transition_time(year) +
+  ease_aes('linear')
+
+```
+
+
+
+```{r, eval = T, echo=FALSE}
+
+pibvscreci
+
+pibpcvscreci
+
+```
+
+### Comentario :
+
+    En el primer gráfico vemos que el incremento del PIB y el PIB actúan de manera uniforme, hasta 1980 donde sí que hay               incrementos del PIB, pero ya no son tan significativos como los anteriores y por tanto el PIB crece de manera más              lenta. Esto se debe a que el valor del PIB es cada vez más alto, y el valor de los incrementos de este no crece al             mismo ritmo, por tanto aunque hayan incrementos parecidos todos los años, no impactan en la variable PIB de igual              manera.
+    
+    En el segundo gráfico medimos lo mismo que en el primero pero con la variable PIB.pc. El comportamiento de esta variable       respecto a su crecimiento, es muy similar al del PIB. Pero vemos que cambia la posición de los países en el gráfico. Este      cambio se debe a la población, cuanto menor es esta, mayor PIB.pc obtenemos. 
+    
+    Por último, comentar que la población está representada por el tamaño del punto en el gráfico.
+    
+```{r, eval = T, echo = FALSE, include= F}
+
+crecimientos <- ggplot(df1.4, aes(crec.100, crec.100.pc, size = pop, colour = country)) +
+  geom_point(alpha = 0.7, show.legend = T) +
+  scale_colour_manual(values = country_colors) +
+  scale_size(range = c(2, 12)) +
+  scale_x_log10() +
+  facet_wrap(~continent) +
+  # Here comes the gganimate specific bits
+  labs(title = 'Year: {frame_time}', x = 'crec.100', y = 'crec.100.pc') +
+  transition_time(year) +
+  ease_aes('linear')
+
+crecimientos + scale_x_continuous(limits = c(65, 100)) 
+crecimientos + scale_y_continuous(limits = c(50, 100)) 
+
+```
+
+
+## 3.5 Gráfico de la evolución crecimiento
+
+
+
+```{r, eval = T, echo=FALSE}
+
+crecimientos
+
+```
+
+### Comentario :
+
+    En este último gráfico podemos ver como el PIB crece bastante más rápido que el PIB.pc, con lo que podemos concluir que estos tres países analizados, cumplen con los estándares de crecimiento de las economías desarrolladas, pero tienen una asignatura pendiente, la igualitaria distribución de la riqueza. En este caso en concreto, y para los datos que hay de 2020 y 2021, puede parecer que se está solucionando el problema de la desigualdad, pero no es asi. El aumento del PIB.pc en estos dos años está más influenciado por el aumento de la tasa de mortalidad debido al coronavirus que a una mejor distribución de los recursos.
+    
+    
+    
+
+# 4. Conclusión :
+
+    Como conclusión, en función de los datos analizados, ambas variables son buenos indicadores del funcionaminento de las         economias de los países analizados, aún así hay que tener en cuenta varios indicadores mas, para obener una visión mas         realista de la situación de cada uno. Así bien hay que valorar el tamaño del país y la población de este. Porque se da el        caso, y de manera normal que el valor del PIB, de paises pequeños es menor que el de grandes países, en cuanto a             territorio se refiere, pero aun así no es lo mismo el PIB que estados unido puedo obtener a lo largo de un año, en             comparación con los Países Bajos, aun así este último país, obtiene un PIB.pc mayor. Por tanto considero muy recomendable      estudiar ambas variables y comparalas para ver el estado actua de la economia, no solo desde el punto de vista de un solo     indicador.
+    
+    
+
+
+# 5. Trabajos en los que te has basado
+
+He basado el trabajo en la [guia](https://perezp44.github.io/intro-ds-20-21-web/04-tutoriales.html) del profesor
+
+Por otro lado, me han ayudado mis compañeros que me han recomendado las [cheatsheets](https://rstudio.com/resources/cheatsheets/)
+
+
+# 6. Bibliografía
+
+[Tutoriales](https://perezp44.github.io/intro-ds-20-21-web/04-tutoriales.html) del curso <br></br>
+Manual básico para [R](https://fhernanb.github.io/Manual-de-R/intro.html#apariencia-del-programa)<br></br>
+Tutorial de internet [Nevulova](https://www.nebulova.es/blog/visualizacion-de-datos-con-plotly)<br></br>
+Manual de [DT](https://rstudio.github.io/DT/)<br></br>
+Esta [viggnete](https://ymlthis.r-lib.org/articles/yaml-fieldguide.html)<br></br>
+Tutorial de [RMarkDown](https://www.markdowntutorial.com/es/)<br></br>
